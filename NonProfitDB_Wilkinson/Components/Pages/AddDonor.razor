@@ -1,0 +1,88 @@
+﻿@page "/AddDonor"
+@using Radzen
+@using Radzen.Blazor 
+@using NonProfitDB_Wilkinson.Models
+@inject NonProfitDBContext _dbContext
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<h2>Enter Donor Information</h2>
+<div class="rz-p-0 rz-p-m-12">
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeSM="6">
+            <RadzenStack>
+                <RadzenFormField Text="First Name">
+                    <RadzenTextBox @bind-Value="@_donor.FirstName" />
+                </RadzenFormField>
+                <RadzenFormField Text="Last Name">
+                    <RadzenTextBox @bind-Value="@_donor.LastName" />
+                </RadzenFormField>
+                <RadzenFormField Text="Email">
+                    <RadzenTextBox @bind-Value="@_donor.Email" />
+                </RadzenFormField>
+                <RadzenFormField Text="Phone Number">
+                    <RadzenTextBox @bind-Value="@_donor.Phone" />
+                </RadzenFormField>
+                <RadzenButton Click=@(args => SaveDonorInfo("Primary button")) Text="Submit Doner Info" ButtonStyle="ButtonStyle.Primary" />
+            </RadzenStack>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeSM="6">
+            <RadzenStack>
+                <RadzenFormField Text="Address">
+                    <RadzenTextArea @bind-Value="@_donor.Address" />
+                </RadzenFormField>
+                <RadzenFormField Text="City">
+                    <RadzenTextBox @bind-Value="@_donor.City" />
+                </RadzenFormField>
+                <RadzenFormField Text="State">
+                    <RadzenTextBox @bind-Value="@_donor.State" />
+                </RadzenFormField>
+                <RadzenFormField Text="Zip Code">
+                    <RadzenTextBox @bind-Value="@_donor.ZipCode" />
+                </RadzenFormField>
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+</div>
+@code {
+    string _firstName;
+    Donor _donor;
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _donor = new Donor();
+    }
+    private void SaveDonorInfo(string text)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_donor.Address) && !string.IsNullOrEmpty(_donor.FirstName)
+            && !string.IsNullOrEmpty(_donor.LastName) && !string.IsNullOrEmpty(_donor.Email)
+            && !string.IsNullOrEmpty(_donor.Phone))
+            {
+                // add to DB
+                var result = _dbContext.Donors.Add(_donor);
+                _dbContext.SaveChanges();
+                // gives user a notification when a doner has been added to the DB
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Info, Summary = "Add Doner", Detail = "Doner has been added " });
+                // resets fields and empties input boxes
+                EmptyDonerFields();
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Fields cannot be empty", Detail = "Make sure ALL fields have data " });
+
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Add Doner Failed", Detail = "Could not add doner info " });
+
+        }
+
+    }
+    private void EmptyDonerFields()
+    {
+        _donor.FirstName = _donor.LastName = _donor.Phone = _donor.Address = _donor.Email = string.Empty;
+    }
+}

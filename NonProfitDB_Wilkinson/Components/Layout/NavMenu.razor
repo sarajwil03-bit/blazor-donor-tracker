@@ -1,0 +1,41 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">NonProfitDB_Wilkinson</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="InLineDonor" Match="NavLinkMatch.All">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Donor
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="DonationCategory" Match="NavLinkMatch.All">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Donation Categories
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Donations" Match="NavLinkMatch.All">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Donations
+            </NavLink>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="ExpenseCategory" Match="NavLinkMatch.All">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Expense Categories
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Expenses" Match="NavLinkMatch.All">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Expenses
+            </NavLink>
+        </div>
+
+    
+    </nav>
+</div>
+

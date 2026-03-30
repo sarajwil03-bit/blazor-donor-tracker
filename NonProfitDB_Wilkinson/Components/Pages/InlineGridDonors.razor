@@ -1,0 +1,214 @@
+﻿@page "/InLineDonor"
+@using Microsoft.EntityFrameworkCore
+@using NonProfitDB_Wilkinson.Models
+@inject NonProfitDBContext _dbContext
+@using Radzen@*The Radzen.Blazor NuGet package was not already installed for my visual studios so I had to install and include these directives*@
+@using Radzen.Blazor
+@rendermode InteractiveServer
+@inject NotificationService NotificationService
+
+<RadzenCard Style="margin:20px; padding:20px; background:white; border-radius:6px;">
+    <h3>Donors</h3>
+<RadzenDataGrid @ref="_donorGrid" AllowAlternatingRows="false" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" EditMode="@DataGridEditMode.Single"
+Data="@_donors" TItem="Donor" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow" Sort="@Reset" Page="@Reset" Filter="@Reset" ColumnWidth="200px">
+    <HeaderTemplate>
+        <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add Donor" Click="@InsertRow" Disabled="@( DonorToInsert.Count() > 0)" />
+    </HeaderTemplate>
+    <Columns>                        @*frozen makes the Donor ID column stay frozen when we use the horizontal scroll bar*@
+        <RadzenDataGridColumn Property="DonorId" Title="ID" Width="100px" Frozen="true"/>
+        <RadzenDataGridColumn Property="FirstName" Title="First Name" Width="200px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.FirstName" Style="width:150px; display: block" Name="FirstName" aria-label="Enter First name" />
+                <RadzenRequiredValidator Text="First Name is required" Component="FirstName" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="LastName" Title="Last Name" Width="200px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.LastName" Style="width:150px; display: block" Name="LastName" aria-label="Enter Last name" />
+                <RadzenRequiredValidator Text="Last Name is required" Component="LastName" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="Phone" Title="Phone Number" Width="200px">
+            <EditTemplate Context="_donor">
+                    <RadzenMask Mask="(***) ***-***" CharacterPattern="[0-9]" Placeholder="(000) 000-000" @bind-Value="_donor.Phone" Style="width:150px; display: block" Name="Phone" aria-label="Enter Phone number" />
+                <RadzenRequiredValidator Text="Phone number is required" Component="Phone" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="Email" Title="Email" Width="200px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.Email" Style="width:150px; display: block" Name="Email" aria-label="Enter Email" />
+                <RadzenRequiredValidator Text="Email is required" Component="Email" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="Address" Title="Address" Width="200px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.Address" Style="width:150px; display: block" Name="Address" aria-label="Enter Address" />
+                <RadzenRequiredValidator Text="Address is required" Component="Address" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="City" Title="City" Width="150px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.City" Style="width:150px; display: block" Name="City" aria-label="Enter City" />
+                <RadzenRequiredValidator Text="City is required" Component="City" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="State" Title="State" Width="200px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.State" Style="width:200px; display: block" Name="State" aria-label="Enter State" />
+                <RadzenRequiredValidator Text="State is required" Component="State" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="ZipCode" Title="Zip Code" Width="120px">
+            <EditTemplate Context="_donor">
+                <RadzenTextBox @bind-Value="_donor.ZipCode" Style="width:120px; display: block" Name="ZipCode" aria-label="Enter Zip Code" />
+                <RadzenRequiredValidator Text="Zip Code is required" Component="ZipCode" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Context="_donor" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+            <Template Context="_donor">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(args => EditRow(_donor))" @onclick:stopPropagation="true" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(_donor))" @onclick:stopPropagation="true" />
+            </Template>
+            <EditTemplate Context="_donor">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(_donor))" aria-label="Save" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(_donor))" aria-label="Cancel" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(_donor))" aria-label="Delete" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+</RadzenCard>
+@code {
+    RadzenDataGrid<Donor> _donorGrid;
+    IEnumerable<Donor> _donors;
+    Donor _donor;
+
+    List<Donor> DonorToInsert = new List<Donor>();
+    List<Donor> DonorToUpdate = new List<Donor>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _donors = _dbContext.Donors;
+        _donor = new Donor();
+    }
+    void Reset()
+    {
+        DonorToInsert.Clear();
+        DonorToUpdate.Clear();
+    }
+    void Reset(Donor order)
+    {
+        DonorToInsert.Remove(order);
+        DonorToUpdate.Remove(order);
+    }
+    // calls when the user presses the green checkmark button to submit UPDATED donor info
+    void OnUpdateRow(Donor order)
+    {
+        Reset(order);
+        _dbContext.Update(order);
+        _dbContext.SaveChanges();
+
+        Notification(order);  // pressing the green checkmark will then call the Notification(SaveDonerInfo) method from the previous assignment
+    }
+
+    // calls when the user presses the green checkmark button to submit NEW donor info
+    void OnCreateRow(Donor order)
+    {
+        _dbContext.Add(order);
+        _dbContext.SaveChanges();
+        DonorToInsert.Remove(order);
+
+        Notification(order);  // pressing the green checkmark will then call the Notification(SaveDonerInfo) method from the previous assignment
+    }
+    // UI visual action of creating fields in the new row.
+    async Task InsertRow()
+    {
+        var donor = new Donor();
+        DonorToInsert.Add(donor);
+        await _donorGrid.InsertRow(donor);
+    }
+    //UI method
+    async Task EditRow(Donor order)
+    {
+
+        DonorToUpdate.Add(order);
+        await _donorGrid.EditRow(order);
+    }
+    async Task DeleteRow(Donor order)
+    {
+        // added validation that checks first if the donor could not be found anymore and would therefore allow for deletion of a donation
+        var donations = _dbContext.Donations.Any(d => d.DonorId == order.DonorId);
+
+        if (donations)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Cannot delete", Detail = "This donor has donations. Delete or reassign those donations first." });
+            _donorGrid.CancelEditRow(order);
+            await _donorGrid.Reload();
+            return;
+
+        }
+        Reset(order);
+
+        if (_donors.Contains(order))
+        {
+            _dbContext.Remove<Donor>(order);
+
+            _dbContext.SaveChanges();
+            // refresh the UI grid
+            await _donorGrid.Reload();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Detail = "Created Donor was deleted " });
+
+        }
+        else
+        {
+            // this means the record was not in the Database table
+            _donorGrid.CancelEditRow(order);
+            await _donorGrid.Reload();
+        }
+    }
+    async Task SaveRow(Donor order)
+    {
+        await _donorGrid.UpdateRow(order);
+    }
+    void CancelEdit(Donor order)
+    {
+        Reset(order);
+
+        _donorGrid.CancelEditRow(order);
+
+        var orderEntry = _dbContext.Entry(order);
+        if (orderEntry.State == EntityState.Modified)
+        {
+            orderEntry.CurrentValues.SetValues(orderEntry.OriginalValues);
+            orderEntry.State = EntityState.Unchanged;
+        }
+    }
+
+    private void Notification(Donor order)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(order.Address) && !string.IsNullOrEmpty(order.FirstName)
+            && !string.IsNullOrEmpty(order.LastName) && !string.IsNullOrEmpty(order.Email)
+            && !string.IsNullOrEmpty(order.Phone) && !string.IsNullOrEmpty(order.City)
+            && !string.IsNullOrEmpty(order.State) && !string.IsNullOrEmpty(order.ZipCode))
+            {
+                // gives user a notification when a donor has been added to the DB
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Detail = "Created Donor added " });
+                // resets fields and empties input boxes
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Fields cannot be empty", Detail = "Make sure ALL fields have data " });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error,  Detail = "Could not add donor info " });
+
+        }
+
+    }
+
+}

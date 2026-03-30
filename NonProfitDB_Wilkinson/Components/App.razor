@@ -1,0 +1,29 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="NonProfitDB_Wilkinson.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    @*Had to add radzen blazor styles because without it my Doner table displayed in the web browser did not look like the professor's in the video*@
+    <link href="_content/Radzen.Blazor/css/material-base.css" rel="stylesheet" />
+    <link href="_content/Radzen.Blazor/css/material.css" rel="stylesheet" />
+
+    @*Had to add radzen blazor script*@
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

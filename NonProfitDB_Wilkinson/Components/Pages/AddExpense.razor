@@ -1,0 +1,244 @@
+﻿@page "/Expenses"
+@using Radzen
+@using Radzen.Blazor
+@using NonProfitDB_Wilkinson.Models
+@inject NonProfitDBContext _dbContext
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+
+
+<RadzenCard Style="margin:20px; padding:20px; background:white; border-radius:6px;">
+    <h3>Expense</h3>
+    <RadzenDataGrid @ref="_expenseGrid" AllowAlternatingRows="false" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" EditMode="@DataGridEditMode.Single"
+                    Data="@_expenses" TItem="Expense" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow" Sort="@Reset" Page="@Reset" Filter="@Reset" ColumnWidth="200px">
+        <HeaderTemplate>
+            <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add Expense" Click="@InsertRow" Disabled="@( ExpenseToInsert.Count() > 0)" />
+        </HeaderTemplate>
+        <Columns>
+            <RadzenDataGridColumn Title="Category" Width="200px">
+                <Template Context="_expense">
+                    @*displays the name of the categories that have been submitted*@
+                    @_categoryInfo.FirstOrDefault(c => c.Id == _expense.ExpenseCategoryId)?.Name
+                </Template>
+                <EditTemplate Context="_expense">
+                    <RadzenDropDown @bind-Value=@_expense.ExpenseCategoryId Data=@_categoryInfo TextProperty="@nameof(CategoryInfo.Name)" ValueProperty="@nameof(CategoryInfo.Id)" Style="width: 100%" Name="ExpenseCategoryId" />
+                    <RadzenRequiredValidator Text="Category is required" Component="ExpenseCategoryId"  />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ExpenseDate" Title="Expense Date" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenDatePicker @bind-Value="_expense.ExpenseDate" Style="width:150px; display: block" Name="ExpenseDate" aria-label="Enter Date" />
+                    <RadzenRequiredValidator Text="Expense Date is required" Component="ExpenseDate" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="EntryDate" Title="Entry date" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenDatePicker @bind-Value="_expense.EntryDate" Style="width:150px; display: block" Name="EntryDate" aria-label="Enter Entry Date" />
+                    <RadzenRequiredValidator Text="Entry date is required" Component="EntryDate" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            @*Taken from the Radzen Blazor component website from the InLineEditing source code to make the '$' appear in the result*@
+            <RadzenDataGridColumn Property="@nameof(_expense.Amount)" Title="Amount">
+                <Template Context="_expense">
+                    @String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", _expense.Amount)
+                </Template>
+                <EditTemplate Context="_expense">
+                    <RadzenNumeric @bind-Value="_expense.Amount" Style="width:100%" InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "Select amount" }})" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="Payee" Title="Payee" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenTextBox @bind-Value="_expense.Payee" Style="width:150px; display: block" Name="Payee" aria-label="Enter Payee" />
+                    <RadzenRequiredValidator Text="Payee is required" Component="Payee" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="PaymentMethod" Title="Payment method" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenTextBox @bind-Value="_expense.PaymentMethod" Style="width:150px; display: block" Name="PaymentMethod" aria-label="Enter Payment method" />
+                    <RadzenRequiredValidator Text="Payment Method is required" Component="PaymentMethod" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ReferenceNumber" Title="Reference Number" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenTextBox @bind-Value="_expense.ReferenceNumber" Style="width:150px; display: block" Name="ReferenceNumber" aria-label="Enter Reference Number" />
+                    <RadzenRequiredValidator Text="Reference Number is required" Component="ReferenceNumber" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="Notes" Title="Notes" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenTextBox @bind-Value="_expense.Notes" Style="width:150px; display: block" Name="Notes" aria-label="Enter any Notes" />
+                    <RadzenRequiredValidator Text="Notes is required" Component="Notes" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="RecordedBy" Title="Recorded By" Width="200px">
+                <EditTemplate Context="_expense">
+                    <RadzenTextBox @bind-Value="_expense.RecordedBy" Style="width:150px; display: block" Name="RecordedBy" aria-label="Enter a Recorded By" />
+                    <RadzenRequiredValidator Text="Recorded By is required" Component="RecordedBy" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Context="_epxense" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+                <Template Context="_expense">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(args => EditRow(_expense))" @onclick:stopPropagation="true" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(_expense))" @onclick:stopPropagation="true" />
+                </Template>
+                <EditTemplate Context="_expense">
+                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(_expense))" aria-label="Save" />
+                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(_expense))" aria-label="Cancel" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(_expense))" aria-label="Delete" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</RadzenCard>
+
+@code {
+
+    RadzenDataGrid<Expense> _expenseGrid;
+    IEnumerable<Expense> _expenses;
+    IEnumerable<ExpenseCategory> _categories;
+
+    Expense _expense;
+
+    List<Expense> ExpenseToInsert = new List<Expense>();
+    List<Expense> ExpenseToUdpdate = new List<Expense>();
+    List<CategoryInfo> _categoryInfo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _expense = new Expense();
+        _expenses = _dbContext.Expenses;
+
+        // this allows for our drop down to have the categories that were submitted already
+        _categories = _dbContext.ExpenseCategories;
+        _categoryInfo = new();
+        // add to list of _categoryinfo
+
+        foreach (var c in _categories)
+        {
+            var item = new CategoryInfo()
+                {
+                    Id = c.ExpenseCategoryId,
+                    Name = c.CategoryName
+                };
+            _categoryInfo.Add(item);
+        }
+    }
+    void Reset()
+    {
+        ExpenseToInsert.Clear();
+        ExpenseToUdpdate.Clear();
+    }
+
+    void Reset(Expense expense)
+    {
+        ExpenseToInsert.Remove(expense);
+        ExpenseToUdpdate.Remove(expense);
+    }
+
+    void OnUpdateRow(Expense expense)
+    {
+        Reset(expense);
+        _dbContext.Update(expense);
+        _dbContext.SaveChanges();
+
+        Notification(expense);
+    }
+
+    void OnCreateRow(Expense expense)
+    {
+        _dbContext.Add(expense);
+        _dbContext.SaveChanges();
+        ExpenseToInsert.Remove(expense);
+
+        Notification(expense);
+    }
+
+    async Task InsertRow()
+    {
+        var expense = new Expense();
+        ExpenseToInsert.Add(expense);
+        await _expenseGrid.InsertRow(expense);
+    }
+
+    async Task EditRow(Expense expense)
+    {
+        ExpenseToUdpdate.Add(expense);
+        await _expenseGrid.EditRow(expense);
+    }
+
+    async Task DeleteRow(Expense expense)  
+    {
+
+        Reset(expense);
+
+        if (_expenses.Contains(expense))
+        {
+            _dbContext.Remove(expense);
+            _dbContext.SaveChanges();
+            await _expenseGrid.Reload();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Detail = "Created Expense was deleted " });
+        }
+        else
+        {
+            _expenseGrid.CancelEditRow(expense);
+            await _expenseGrid.Reload();
+        }
+    }
+
+    async Task SaveRow(Expense expense)
+    {
+        await _expenseGrid.UpdateRow(expense);
+    }
+
+    void CancelEdit(Expense expense)
+    {
+        Reset(expense);
+
+        _expenseGrid.CancelEditRow(expense);
+
+        var entry = _dbContext.Entry(expense);
+        if (entry.State == Microsoft.EntityFrameworkCore.EntityState.Modified)
+        {
+            entry.CurrentValues.SetValues(entry.OriginalValues);
+            entry.State = Microsoft.EntityFrameworkCore.EntityState.Unchanged;
+        }
+    }
+
+    private void Notification(Expense expense)
+    {
+        try
+        {   // had to create a bool to check for if ExpenseDate and EntryDate and Amount were empty or not
+            bool isNotEmpty = expense.ExpenseDate != default && expense.EntryDate != default &&
+            expense.Amount > 0 && !string.IsNullOrEmpty(expense.PaymentMethod) && !string.IsNullOrEmpty(expense.Payee) &&
+            !string.IsNullOrWhiteSpace(expense.ReferenceNumber) && !string.IsNullOrWhiteSpace(expense.Notes) &&
+            !string.IsNullOrWhiteSpace(expense.RecordedBy);
+
+            if (isNotEmpty)
+            {
+                // gives user a notification when a donor has been added to the DB
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Detail = "Created Expense added " });
+                // resets fields and empties input boxes
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Fields cannot be empty", Detail = "Make sure ALL fields have data " });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Detail = "Could not add Expense" });
+
+        }
+
+    }
+    // to get full name of the category
+
+    class CategoryInfo
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+}

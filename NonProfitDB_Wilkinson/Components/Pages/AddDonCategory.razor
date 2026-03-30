@@ -1,0 +1,179 @@
+﻿@page "/DonationCategory"
+@using Radzen
+@using Radzen.Blazor 
+@using NonProfitDB_Wilkinson.Models
+@inject NonProfitDBContext _dbContext
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+
+
+@*Mostly the same code from the InLineGridDonors component page*@
+
+<RadzenCard Style="margin:20px; padding:20px; background:white; border-radius:6px;">
+    <h3>Donation Categories</h3>
+<RadzenDataGrid @ref="_categoryGrid" AllowAlternatingRows="false" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" EditMode="@DataGridEditMode.Single"
+    Data="@_categories" TItem="DonationCategory" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow" Sort="@Reset" Page="@Reset" Filter="@Reset" ColumnWidth="200px">
+    <HeaderTemplate>
+        <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add Donation Category" Click="@InsertRow" Disabled="@( CategoryToInsert.Count() > 0)" />
+    </HeaderTemplate>
+    <Columns>                                                          
+        <RadzenDataGridColumn Property="CategoryName" Title="Category Name" Width="250px">
+            <EditTemplate Context="_category">
+                <RadzenTextBox @bind-Value="_category.CategoryName" Style="width:250px; display: block" Name="CategoryName" aria-label="Enter First name" />
+                <RadzenRequiredValidator Text="Category Name is required" Component="CategoryName" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="Description" Title="Description" Width="400px">
+            <EditTemplate Context="_category">
+                <RadzenTextBox @bind-Value="_category.Description" Style="width:400px; display: block" Name="Description" aria-label="Enter Last name" />
+                <RadzenRequiredValidator Text="Description is required" Component="Description" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Context="_category" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+            <Template Context="_category">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(args => EditRow(_category))" @onclick:stopPropagation="true" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(_category))" @onclick:stopPropagation="true" />
+            </Template>
+            <EditTemplate Context="_category">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(_category))" aria-label="Save" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(_category))" aria-label="Cancel" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(_category))" aria-label="Delete" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+</RadzenCard>
+@code {
+    RadzenDataGrid<DonationCategory> _categoryGrid;
+    IEnumerable<DonationCategory> _categories;
+    DonationCategory _category;
+
+    List<DonationCategory> CategoryToInsert = new List<DonationCategory>();
+    List<DonationCategory> CategoryToUpdate = new List<DonationCategory>();
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _categories = _dbContext.DonationCategories;
+        _category = new DonationCategory();
+    }
+    void Reset()
+    {
+        CategoryToInsert.Clear();
+        CategoryToUpdate.Clear();
+    }
+
+    void Reset(DonationCategory category)
+    {
+        CategoryToInsert.Remove(category);
+        CategoryToUpdate.Remove(category);
+    }
+
+    void OnUpdateRow(DonationCategory category)
+    {
+        Reset(category);
+        _dbContext.Update(category);
+        _dbContext.SaveChanges();
+
+        Notification(category);
+    }
+
+    void OnCreateRow(DonationCategory category)
+    {
+
+        // check if category name is already in db table
+        if (!string.IsNullOrEmpty(category.CategoryName))
+        {
+            if (_dbContext.DonationCategories.FirstOrDefault(x => x.CategoryName == category.CategoryName) != null)
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Info, Summary = "Category is alrady saved", Detail = "Category was added before" });
+                // cancel the row insert
+                CategoryToInsert.Remove(category);
+                _categoryGrid.CancelEditRow(category);
+                return;
+            }
+
+        }
+        
+        _dbContext.Add(category);
+        _dbContext.SaveChanges();
+
+        Notification(category);
+    }
+
+    async Task InsertRow()
+    {
+        var category = new DonationCategory();
+        CategoryToInsert.Add(category);
+        await _categoryGrid.InsertRow(category);
+    }
+
+    async Task EditRow(DonationCategory category)
+    {
+        CategoryToUpdate.Add(category);
+        await _categoryGrid.EditRow(category);
+    }
+
+    async Task DeleteRow(DonationCategory category)
+    {
+        Reset(category);
+
+        if (_categories.Contains(category))
+        {
+            _dbContext.Remove(category);
+            _dbContext.SaveChanges();
+
+            await _categoryGrid.Reload();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Detail = "Created Category was deleted " });
+
+        }
+        else
+        {
+            _categoryGrid.CancelEditRow(category);
+            await _categoryGrid.Reload();
+        }
+    }
+
+    async Task SaveRow(DonationCategory category)
+    {
+        await _categoryGrid.UpdateRow(category);
+    }
+
+    void CancelEdit(DonationCategory category)
+    {
+        Reset(category);
+
+        _categoryGrid.CancelEditRow(category);
+
+        var entry = _dbContext.Entry(category);
+        if (entry.State == Microsoft.EntityFrameworkCore.EntityState.Modified)
+        {
+            entry.CurrentValues.SetValues(entry.OriginalValues);
+            entry.State = Microsoft.EntityFrameworkCore.EntityState.Unchanged;
+        }
+    }
+
+    private void Notification(DonationCategory category)
+    {
+        try
+        {
+
+            if (!string.IsNullOrEmpty(category.CategoryName) && !string.IsNullOrEmpty(category.Description) )
+            {
+                
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Adding category success", Detail = "Category has been added " });   
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Fields cannot be empty", Detail = "Make sure ALL fields have data " });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Detail = "Could not add Category" });
+
+        }
+
+    }
+
+}
