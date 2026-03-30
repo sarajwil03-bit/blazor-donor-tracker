@@ -1,1 +1,1 @@
-# NonProfitDB_Wilkinson
+# web-donor-database table
