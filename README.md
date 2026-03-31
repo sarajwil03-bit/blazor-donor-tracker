@@ -39,10 +39,10 @@ The database is designed and created using SSMS and reverse-engineered into Visu
 -Displaying dynamic data in a web interface using Blazor
 -Improving data presentation and usability in the UI
 
-##Added Expense and Expense category later on in development
+##Added Expense and Expense category later on in development and added script.sql file to view the SSMS data tables
 
 ##Screenshots:
-
+![Homepage](screenshots/donor.png)
 
 
 
