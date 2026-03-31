@@ -4,11 +4,12 @@ Data driven web application that manages donor information, donations, and categ
 
 ##Features:
 -Add, edit, and delete donor information and donations
--Checks for duplicate values
+-Checks for duplicate values or names for donors and donations
 -Manage donations records and categories
 -Cascading deletion of donations when a donor is removed
 -Dynamic data updates through a web-based interface
 -Responsive and user-friendly UI
+-Pop up notifications of different colors that will tell you if an addition of donor, donation, or donation categories was successful
 
 ##Functionality:
 This functionality is implemented wiht a relational database to maintain consistency and data integrity
